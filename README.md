@@ -19,93 +19,10 @@ the visitor's browser.
 | `weatherData.js` | Data only: all 90 conditions — title, description, tier color, which animation they use, and how they can be detected. Edit **this** file to change wording or colors. |
 | `app.js` | All the logic: location lookup, fetching weather/air-quality/alerts, deciding which of the 90 conditions to show, and drawing the animations. |
 | `test/` | Optional. A data-integrity checker and a small automated test suite for the decision logic. Not needed for the site to run — see [Running the checks](#4-optional-run-the-automated-checks). |
-| `package.json`, `.gitignore` | Only relevant if you use `test/`. Not needed for the live site itself. |
+| `package.json`, `.gitignore` | Only relevant because `test/` is in it. Not needed for the live site itself. |
 
 You don't need a server, a database, or a build tool. GitHub Pages just serves
 these files as-is.
-
-<br>
-
-## 2. Get this onto GitHub
-
-### Option A — GitHub's website (no command line needed)
-
-1. Go to [github.com](https://github.com) and log in.
-2. Click the **+** in the top-right corner → **New repository**.
-3. Name it something like `weather-scope`. Keep it **Public** (GitHub Pages'
-   free tier needs a public repo, unless you're on a paid plan). Don't
-   initialize it with a README — you already have one.
-4. Click **Create repository**.
-5. On the new repo's page, click **uploading an existing file**.
-6. Drag in `index.html`, `styles.css`, `weatherData.js`, `app.js`, and
-   `README.md` (and `test/`, `package.json`, `.gitignore` if you want them
-   too — they're harmless either way).
-7. Scroll down, click **Commit changes**.
-
-### Option B — Git on the command line
-
-```bash
-cd path/to/this/folder
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/YOUR-USERNAME/weather-scope.git
-git push -u origin main
-```
-
-<br>
-
-## 3. Turn on GitHub Pages
-
-1. In your repo, go to **Settings** → **Pages** (left sidebar, under "Code and automation").
-2. Under **Build and deployment → Source**, choose **Deploy from a branch**.
-3. Under **Branch**, choose **main** and folder **/ (root)**, then **Save**.
-4. Wait a minute or two. Refresh the page — GitHub will show you the live URL,
-   something like:
-
-   `https://YOUR-USERNAME.github.io/weather-scope/`
-
-That's the whole deployment. Any time you push new commits to `main`, the
-live site updates automatically within a minute or so.
-
-<br>
-
-## 4. Test it locally first (recommended)
-
-Before pushing, you can just double-click `index.html` to open it in a
-browser — the weather APIs this site uses all allow being called directly
-from a page like that, so it should work. If your browser is picky about
-that, run a tiny local server instead from inside the folder:
-
-```bash
-python3 -m http.server 8000
-# then open http://localhost:8000
-```
-
-<br>
-
-## 5. (Optional) Run the automated checks
-
-`test/` has two independent checks:
-
-- **`test/validate-data.js`** — plain Node, no dependencies. Confirms all 90
-  entries in `weatherData.js` are well-formed (valid colors, no duplicate
-  ids, no leftover "Your Experiencing" typos, etc). Run with:
-  ```bash
-  node test/validate-data.js
-  ```
-- **`test/run-jsdom-tests.js`** — exercises the actual decision logic (the
-  functions that turn raw weather numbers into one of the 90 conditions)
-  against ~66 synthetic scenarios, using [jsdom](https://github.com/jsdom/jsdom)
-  to simulate a browser. Needs one dependency:
-  ```bash
-  npm install
-  npm test
-  ```
-
-Neither is required for the site to work — they're just there so you can
-change thresholds or add conditions later without breaking things silently.
 
 <br>
 
@@ -208,35 +125,6 @@ which is the real definition of bombogenesis.
 
 <br>
 
-## Customizing
-
-- **Removing the test menu** (e.g. for a "production" version) — every part
-  of it is wrapped in matching `DEV PANEL: START` / `DEV PANEL: END` comments
-  in `index.html`, `styles.css`, and `app.js`. The only one that actually
-  matters is **`index.html`**: `app.js` checks whether `#test-menu-toggle`
-  exists before wiring anything up, so deleting just that HTML block is
-  enough to safely turn the panel off — nothing else will throw or break.
-  Trimming the matching blocks from `styles.css`/`app.js` too is optional
-  cosmetic cleanup (smaller files), not required. **To put it back**, paste
-  those same blocks back in (keep a copy somewhere before deleting, or pull
-  them from git history / from the copy of this project you already have).
-- **Wording, colors, which animation a condition uses** — all in
-  `weatherData.js`. Each entry is one object; `effect` picks the animation
-  (`rain`, `snow`, `tornado`, `hurricane`, etc. — see the comment block at
-  the top of `app.js` for the full list), `intensity` (1–5, or 1–6 for
-  `sky`) controls how strong it looks.
-- **Amber (`#FFC107`) and Brown (`#6D4C41`)** — your original list didn't
-  assign any conditions to these two tiers, so they're fully wired up
-  (color, flashing behavior for Brown, test-menu grouping) but empty. Add
-  entries the same way as any other tier and they'll show up automatically.
-- **Detection thresholds** (what counts as "windy" vs. "very windy," what
-  temperature counts as "extreme cold," etc.) — the `THRESH` object near the
-  top of `app.js`.
-- **The NWS alert → condition mapping** (which alert text maps to which of
-  the 90 conditions) — `mapNwsAlertToConditionId()` in `app.js`.
-
-<br>
-
 ## Attribution
 
 Two of the free sources ask for visible credit, which the location bar
@@ -251,20 +139,3 @@ soft cap of about one request per second and a request not to hammer it
 automatically — this site only calls it when you click "Go" on a ZIP code,
 never on every keystroke, which keeps it well within that limit for normal
 personal use.
-
-<br>
-
-## A few small edits I made to your spec
-
-- "Your Experiencing X" → "You're Experiencing X" throughout (contraction of
-  "you are"), everywhere it appeared. "Your Skies Are Clear" / "Your Area Is
-  Windy" were already correct as written and untouched.
-- "A Atmospheric River" / "A Ice Storm" / "A Extreme Blizzard" → "An
-  Atmospheric River" / "An Ice Storm" / "An Extreme Blizzard."
-- A handful of typos in the description text (abundant/sunshine, outdoor,
-  activities, coastal/inundating, unusually, precautions).
-- Amber and Brown are in the code with no conditions, as noted above, since
-  none were specified.
-
-Everything else — every title, every description, every color, the full
-list of 90 conditions — is exactly as you wrote it.
