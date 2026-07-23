@@ -139,3 +139,12 @@ soft cap of about one request per second and a request not to hammer it
 automatically — this site only calls it when you click "Go" on a ZIP code,
 never on every keystroke, which keeps it well within that limit for normal
 personal use.
+
+<br>
+
+## You May Or Not
+
+You may **NOT**:
+<br>Copy code and claim it as yours<br>
+Copy code and publish it as your own<br>
+Copy code and modify it to be malicous, worse, or better<br>
