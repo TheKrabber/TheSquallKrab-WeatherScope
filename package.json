@@ -1,0 +1,12 @@
+{
+  "name": "skycast-weather-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A static, GitHub Pages-hosted weather dashboard with 90 animated condition states.",
+  "scripts": {
+    "test": "node test/validate-data.js && node test/run-jsdom-tests.js"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1"
+  }
+}

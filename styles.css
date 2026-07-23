@@ -1,0 +1,673 @@
+/* =============================================================================
+   styles.css — layout, type, and every weather-effect animation.
+   Colors for the condition boxes are NOT hard-coded here: app.js sets
+   --tier-rgb / --tier-hex on <html> whenever the active condition changes,
+   and this file just reads those variables. That's the only hand-off
+   between the two files.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --font-display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+
+  /* Overwritten at runtime by app.js */
+  --tier-rgb: 0, 200, 83;
+  --tier-hex: #00C853;
+
+  --bg-top: #6b6f78;
+  --bg-bottom: #34363b;
+  --panel: rgba(18, 20, 24, 0.55);
+  --panel-border: rgba(255, 255, 255, 0.10);
+  --ink: #f5f6f7;
+  --ink-dim: rgba(245, 246, 247, 0.68);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 120% 60% at 50% -12%, var(--bg-top), transparent 60%),
+    linear-gradient(180deg, #55585f 0%, var(--bg-bottom) 55%, #2a2c30 100%);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, select {
+  font-family: inherit;
+}
+
+a { color: inherit; }
+
+::selection { background: rgba(var(--tier-rgb), 0.45); }
+
+/* Focus visibility (kept even where we style away default outlines) */
+:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* =============================================================================
+   Page shell
+   ========================================================================== */
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 16px 32px;
+}
+
+.eyebrow {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin: 4px 0 0;
+}
+
+/* =============================================================================
+   Condition banners (top = title, bottom = description)
+   Both read the same --tier-rgb custom property; only position/size differ.
+   ========================================================================== */
+
+.condition-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(92vw, 720px);
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(var(--tier-rgb), 0.60);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px) saturate(1.3);
+  -webkit-backdrop-filter: blur(8px) saturate(1.3);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
+  color: #fff;
+  text-align: center;
+  text-wrap: balance;
+  transition: background-color 0.4s ease;
+}
+
+#condition-banner {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(16px, 3.6vw, 22px);
+}
+
+#condition-footer {
+  font-size: clamp(13px, 2.6vw, 15.5px);
+  line-height: 1.45;
+  font-weight: 500;
+  padding: 12px 24px;
+  border-radius: 22px;
+  max-width: min(92vw, 640px);
+}
+
+.warning-icon {
+  flex: none;
+  width: 1.15em;
+  height: 1.15em;
+  display: none;
+}
+
+/* Severe tiers: warning glyph shows, box pulses (1s out, 1s back = 2s loop) */
+.condition-banner.is-severe .warning-icon { display: block; }
+
+.condition-banner.is-severe {
+  animation: severe-pulse 2s ease-in-out infinite;
+}
+
+@keyframes severe-pulse {
+  0%, 100% { background-color: rgba(var(--tier-rgb), 0.66); }
+  50%      { background-color: rgba(var(--tier-rgb), 0.24); }
+}
+
+/* =============================================================================
+   Weather stage — the big animated box
+   ========================================================================== */
+
+#weather-stage {
+  width: 100%;
+  max-width: 920px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+#weather-box {
+  position: relative;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 46vh;
+  border-radius: 28px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #23262c, #16181b 70%);
+  border: 1px solid var(--panel-border);
+  box-shadow:
+    0 30px 60px -20px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+#effect-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+#effect-layer.is-transitioning { opacity: 0; }
+#effect-layer { opacity: 1; transition: opacity 0.35s ease; }
+
+/* Loading / empty state */
+#weather-box .stage-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-dim);
+  font-size: 14px;
+  gap: 8px;
+}
+
+/* Stats strip pinned to the bottom of the weather box */
+#stats-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px;
+  background: linear-gradient(to top, rgba(6, 7, 9, 0.72) 0%, rgba(6, 7, 9, 0.35) 65%, transparent 100%);
+  z-index: 5;
+}
+
+.stat {
+  flex: 1 1 78px;
+  min-width: 78px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 12px;
+  padding: 7px 8px 8px;
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 2px;
+}
+
+.stat-value {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* =============================================================================
+   Location controls
+   ========================================================================== */
+
+#location-controls {
+  width: 100%;
+  max-width: 920px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13.5px;
+}
+
+#location-name {
+  color: var(--ink-dim);
+  margin-right: 4px;
+}
+#location-name strong { color: var(--ink); font-weight: 600; }
+
+#location-controls input[type="text"],
+#location-controls select {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--ink);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+}
+#location-controls input[type="text"] { width: 120px; }
+#location-controls input::placeholder { color: rgba(245,246,247,0.45); }
+
+.btn {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.10);
+  color: var(--ink);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+.btn:hover { background: rgba(255, 255, 255, 0.18); }
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.5; cursor: progress; }
+
+.btn-primary {
+  background: rgba(var(--tier-rgb), 0.85);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.btn-primary:hover { background: rgba(var(--tier-rgb), 1); }
+
+#geocode-attribution {
+  width: 100%;
+  text-align: center;
+  font-size: 10.5px;
+  color: rgba(245, 246, 247, 0.35);
+}
+#geocode-attribution a { color: rgba(245, 246, 247, 0.55); }
+
+/* =============================================================================
+   Test menu
+
+   This whole section only styles elements that live inside the DEV PANEL
+   block in index.html. It's inert (targets nothing) if that HTML is gone,
+   so removing it is purely cosmetic cleanup, never required. Marked START/END
+   to match app.js and index.html anyway, for a full, tidy removal.
+   ========================================================================== */
+
+/* =============================================================================
+   Effect layer contents (shared)
+   ========================================================================== */
+
+.fx-fill { position: absolute; inset: 0; }
+
+.fx-tint {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: normal;
+  pointer-events: none;
+}
+
+/* ---- sky (clear -> overcast) ---- */
+.fx-sun {
+  position: absolute;
+  top: 14%;
+  left: 50%;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, #fff6d8 0%, #ffd873 55%, rgba(255,216,115,0) 72%);
+  box-shadow: 0 0 70px 20px rgba(255, 216, 115, 0.35);
+  animation: sun-glow 5s ease-in-out infinite;
+}
+@keyframes sun-glow {
+  0%, 100% { box-shadow: 0 0 70px 20px rgba(255, 216, 115, 0.30); }
+  50%      { box-shadow: 0 0 90px 30px rgba(255, 216, 115, 0.48); }
+}
+
+.fx-cloud {
+  position: absolute;
+  top: var(--cy, 20%);
+  left: 0;
+  width: var(--cw, 140px);
+  height: var(--ch, 46px);
+  background: #eef1f4;
+  opacity: var(--cop, 0.85);
+  border-radius: 999px;
+  box-shadow:
+    calc(var(--cw, 140px) * 0.32) calc(var(--ch, 46px) * -0.42) 0 calc(var(--ch, 46px) * -0.06) #eef1f4,
+    calc(var(--cw, 140px) * -0.28) calc(var(--ch, 46px) * -0.30) 0 calc(var(--ch, 46px) * -0.10) #eef1f4;
+  filter: blur(1px);
+  animation: cloud-drift var(--dur, 50s) linear infinite;
+  animation-delay: var(--delay, 0s);
+}
+.fx-cloud.overcast-sheet {
+  width: 140%;
+  height: 70%;
+  border-radius: 40%;
+  filter: blur(14px);
+  opacity: 0.6;
+}
+@keyframes cloud-drift {
+  from { transform: translateX(-30%); }
+  to   { transform: translateX(130%); }
+}
+
+/* ---- fog / mist / haze ---- */
+.fx-fog-band {
+  position: absolute;
+  left: -20%;
+  width: 140%;
+  height: var(--h, 60px);
+  top: var(--top, 30%);
+  background: linear-gradient(90deg, transparent, rgba(235,238,240,var(--op,0.5)) 35%, rgba(235,238,240,var(--op,0.5)) 65%, transparent);
+  filter: blur(6px);
+  animation: fog-drift var(--dur, 26s) ease-in-out infinite alternate;
+  animation-delay: var(--delay, 0s);
+}
+.fx-fog-band.icy { background: linear-gradient(90deg, transparent, rgba(206,231,255,var(--op,0.55)) 35%, rgba(206,231,255,var(--op,0.55)) 65%, transparent); }
+@keyframes fog-drift {
+  from { transform: translateX(-6%); }
+  to   { transform: translateX(6%); }
+}
+
+/* ---- rain / drizzle / freezing rain ---- */
+.fx-drop {
+  position: absolute;
+  top: -8%;
+  left: var(--x, 50%);
+  width: var(--w, 2px);
+  height: var(--h, 22px);
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(190,220,255,0), rgba(190,220,255,0.85));
+  animation: drop-fall var(--dur, 1s) linear infinite;
+  animation-delay: var(--delay, 0s);
+  transform: rotate(var(--angle, 8deg));
+}
+.fx-drop.icy { background: linear-gradient(180deg, rgba(220,245,255,0), rgba(220,245,255,0.95)); }
+@keyframes drop-fall {
+  from { transform: translateY(0) rotate(var(--angle, 8deg)); }
+  to   { transform: translateY(115vh) rotate(var(--angle, 8deg)); }
+}
+.fx-glint {
+  position: absolute;
+  width: 3px; height: 3px; border-radius: 50%;
+  left: var(--x, 50%); top: var(--y, 50%);
+  background: #eaf7ff;
+  box-shadow: 0 0 4px 1px rgba(234,247,255,0.9);
+  animation: glint-twinkle 2.4s ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+@keyframes glint-twinkle {
+  0%, 100% { opacity: 0.15; }
+  50%      { opacity: 0.9; }
+}
+
+/* ---- snow ---- */
+.fx-flake {
+  position: absolute;
+  top: -6%;
+  left: var(--x, 50%);
+  width: var(--s, 6px);
+  height: var(--s, 6px);
+  border-radius: 50%;
+  background: #ffffff;
+  opacity: var(--op, 0.9);
+  animation: flake-fall var(--dur, 8s) linear infinite;
+  animation-delay: var(--delay, 0s);
+}
+@keyframes flake-fall {
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(var(--sway, 18px), 57.5vh); }
+  100% { transform: translate(0, 115vh); }
+}
+
+/* ---- hail / graupel / sleet ---- */
+.fx-pellet {
+  position: absolute;
+  top: -6%;
+  left: var(--x, 50%);
+  width: var(--s, 5px);
+  height: var(--s, 5px);
+  border-radius: 50%;
+  background: #e7eef2;
+  box-shadow: inset -1px -1px 1px rgba(0,0,0,0.15);
+  animation: pellet-fall var(--dur, 1.4s) linear infinite;
+  animation-delay: var(--delay, 0s);
+}
+@keyframes pellet-fall {
+  0%   { transform: translateY(0); }
+  82%  { transform: translateY(112vh); }
+  88%  { transform: translateY(108vh); }
+  100% { transform: translateY(112vh); opacity: 0; }
+}
+
+/* ---- thunder / lightning ---- */
+.fx-lightning {
+  position: absolute;
+  inset: 0;
+  background: #eaf3ff;
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+.fx-lightning.flash { animation: lightning-flash 0.55s ease-out; }
+@keyframes lightning-flash {
+  0%   { opacity: 0; }
+  8%   { opacity: 0.85; }
+  16%  { opacity: 0.1; }
+  24%  { opacity: 0.65; }
+  40%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+.fx-storm-tint { background: linear-gradient(180deg, rgba(40,44,54,0.55), rgba(20,22,28,0.15)); }
+
+/* ---- wind ---- */
+.fx-streak {
+  position: absolute;
+  left: -12%;
+  top: var(--y, 30%);
+  width: var(--w, 90px);
+  height: var(--h, 2px);
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,var(--op,0.55)));
+  animation: streak-move var(--dur, 2.2s) linear infinite;
+  animation-delay: var(--delay, 0s);
+}
+@keyframes streak-move {
+  from { transform: translateX(0); }
+  to   { transform: translateX(130vw); }
+}
+.shake { animation: box-shake 0.4s ease-in-out infinite; }
+@keyframes box-shake {
+  0%, 100% { transform: translate(0, 0); }
+  25%      { transform: translate(1px, 0); }
+  50%      { transform: translate(-1px, 1px); }
+  75%      { transform: translate(1px, -1px); }
+}
+
+/* ---- dust / smoke / ash ---- */
+.fx-particle-cloud {
+  position: absolute;
+  left: var(--x, 50%);
+  top: var(--y, 50%);
+  width: var(--s, 120px);
+  height: var(--s, 120px);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--pc, rgba(196,164,105,0.55)) 0%, rgba(196,164,105,0) 70%);
+  filter: blur(2px);
+  animation: particle-drift var(--dur, 14s) ease-in-out infinite alternate;
+  animation-delay: var(--delay, 0s);
+}
+@keyframes particle-drift {
+  from { transform: translate(-8%, 0); }
+  to   { transform: translate(8%, -4%); }
+}
+.fx-ash-flake {
+  position: absolute;
+  top: -6%;
+  left: var(--x, 50%);
+  width: var(--s, 4px);
+  height: var(--s, 4px);
+  border-radius: 50%;
+  background: #7a7a7a;
+  animation: flake-fall var(--dur, 12s) linear infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+/* ---- heat ---- */
+.fx-heat-wave {
+  position: absolute;
+  left: -10%;
+  width: 120%;
+  height: 10px;
+  bottom: var(--b, 10%);
+  background: linear-gradient(90deg, transparent, rgba(255,180,110,0.35), transparent);
+  filter: blur(3px);
+  animation: heat-wobble var(--dur, 2.4s) ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+  transform-origin: center;
+}
+@keyframes heat-wobble {
+  0%, 100% { transform: scaleY(1) translateX(0); }
+  50%      { transform: scaleY(2.2) translateX(2%); }
+}
+
+/* ---- cold ---- */
+.fx-frost-speck {
+  position: absolute;
+  left: var(--x, 50%);
+  top: var(--y, 50%);
+  width: var(--s, 3px);
+  height: var(--s, 3px);
+  background: #eaf6ff;
+  border-radius: 50%;
+  opacity: 0.8;
+  animation: glint-twinkle var(--dur, 3s) ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+/* ---- flood ---- */
+.fx-water {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: 0;
+  height: var(--level, 22%);
+  background: linear-gradient(180deg, rgba(78, 140, 191, 0.55), rgba(38, 78, 112, 0.85));
+  border-top-left-radius: 45%;
+  border-top-right-radius: 40%;
+  animation: water-sway 5s ease-in-out infinite;
+}
+.fx-water.rising { animation: water-rise 3.5s ease-in-out infinite alternate, water-sway 4s ease-in-out infinite; }
+@keyframes water-sway {
+  0%, 100% { transform: translateX(-2%) scaleY(1); }
+  50%      { transform: translateX(2%) scaleY(1.03); }
+}
+@keyframes water-rise {
+  from { height: calc(var(--level, 22%) - 4%); }
+  to   { height: calc(var(--level, 22%) + 4%); }
+}
+
+/* ---- tornado ---- */
+.fx-funnel {
+  position: absolute;
+  top: 6%;
+  left: 50%;
+  width: var(--w, 60px);
+  height: 78%;
+  transform: translateX(-50%) rotate(var(--tilt, -3deg));
+  background: linear-gradient(180deg, rgba(60,64,70,0.85), rgba(45,48,53,0.25));
+  /* Wide at the cloud base (top), tapering to a point at ground contact (bottom) */
+  clip-path: polygon(15% 0, 85% 0, 57% 100%, 43% 100%);
+  animation: funnel-wobble var(--dur, 3.2s) ease-in-out infinite;
+  filter: blur(0.5px);
+}
+@keyframes funnel-wobble {
+  0%, 100% { transform: translateX(-50%) rotate(var(--tilt, -3deg)); }
+  50%      { transform: translateX(-50%) rotate(calc(var(--tilt, -3deg) * -1)); }
+}
+/* Debris field: the container is what spins (a plain, well-defined rotation
+   around its own center); each dot just sits at a fixed left/top percentage
+   that app.js computes with trigonometry, so nothing fights over transform. */
+.fx-orbit {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  width: var(--orbit, 90px);
+  height: var(--orbit, 90px);
+  margin-left: calc(var(--orbit, 90px) / -2);
+  animation: orbit-spin var(--dur, 2.4s) linear infinite;
+}
+.fx-orbit .dot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: #b8bcc2;
+}
+@keyframes orbit-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ---- hurricane ---- */
+.fx-spiral-arm {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: var(--d, 260px);
+  height: var(--d, 260px);
+  margin: calc(var(--d, 260px) / -2) 0 0 calc(var(--d, 260px) / -2);
+  border-radius: 50%;
+  border: 2px dashed rgba(210, 220, 235, var(--op, 0.35));
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  animation: spiral-spin var(--dur, 18s) linear infinite;
+}
+.fx-eye {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: var(--d, 46px);
+  height: var(--d, 46px);
+  margin: calc(var(--d, 46px) / -2) 0 0 calc(var(--d, 46px) / -2);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(180,200,220,0.25), transparent 70%);
+}
+@keyframes spiral-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Reduced motion: keep effects present but calm them down */
+@media (prefers-reduced-motion: reduce) {
+  .fx-cloud, .fx-fog-band, .fx-drop, .fx-flake, .fx-pellet, .fx-streak,
+  .fx-particle-cloud, .fx-ash-flake, .fx-heat-wave, .fx-frost-speck,
+  .fx-water, .fx-funnel, .fx-orbit, .fx-spiral-arm, .condition-banner.is-severe,
+  .shake {
+    animation-duration: 6s !important;
+    animation-timing-function: ease-in-out !important;
+  }
+  .shake { animation: none; }
+}
+
+/* =============================================================================
+   Small screens
+   ========================================================================== */
+
+@media (max-width: 560px) {
+  #weather-box { min-height: 52vh; border-radius: 20px; }
+  .stat { flex: 1 1 72px; min-width: 72px; }
+  #condition-banner { font-size: clamp(15px, 4.6vw, 19px); }
+  #test-menu-toggle span.label { display: none; } /* dev panel — inert without it, safe to leave or drop */
+}
+
+/* Utility */
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

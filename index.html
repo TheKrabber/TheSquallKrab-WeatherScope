@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TheSquallKrab - WeatherScope</title>
+<meta name="description" content="WeatherScope by TheSquallKrab — a dashboard that detects your location (or a ZIP/postal code) and animates the current conditions in real time.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="app">
+  <p class="eyebrow">TheSquallKrab · WeatherScope</p>
+
+  <div id="condition-banner" class="condition-banner" role="status" aria-live="polite"></div>
+
+  <div id="weather-stage">
+    <div id="weather-box">
+      <div id="effect-layer"></div>
+
+      <div id="stats-bar">
+        <div class="stat"><span class="stat-label">Rain</span><span class="stat-value" id="stat-rain">0.00 in/hr</span></div>
+        <div class="stat"><span class="stat-label">Temp</span><span class="stat-value" id="stat-temp">—</span></div>
+        <div class="stat"><span class="stat-label">Wind</span><span class="stat-value" id="stat-wind">—</span></div>
+        <div class="stat"><span class="stat-label">Pressure</span><span class="stat-value" id="stat-pressure">—</span></div>
+        <div class="stat"><span class="stat-label">Visibility</span><span class="stat-value" id="stat-visibility">—</span></div>
+        <div class="stat"><span class="stat-label">UV Index</span><span class="stat-value" id="stat-uv">—</span></div>
+        <div class="stat"><span class="stat-label">Air Quality</span><span class="stat-value" id="stat-aqi">—</span></div>
+      </div>
+    </div>
+
+    <div id="condition-footer" class="condition-banner" style="align-self: center;" role="status" aria-live="polite"></div>
+  </div>
+
+  <div id="location-controls">
+    <span id="location-name">Finding your location…</span>
+    <button type="button" class="btn" id="use-ip-btn">Use my location</button>
+    <input type="text" id="zip-input" placeholder="ZIP / postal code" inputmode="text" autocomplete="postal-code">
+    <select id="country-select" aria-label="Country for postal code lookup">
+      <option value="us" selected>United States</option>
+      <option value="ca">Canada</option>
+      <option value="gb">United Kingdom</option>
+      <option value="de">Germany</option>
+      <option value="fr">France</option>
+      <option value="es">Spain</option>
+      <option value="it">Italy</option>
+      <option value="au">Australia</option>
+      <option value="jp">Japan</option>
+      <option value="in">India</option>
+      <option value="br">Brazil</option>
+      <option value="mx">Mexico</option>
+    </select>
+    <button type="button" class="btn btn-primary" id="zip-submit">Go</button>
+    <span id="geocode-attribution">Postal lookup via OpenStreetMap Nominatim · IP location via BigDataCloud</span>
+  </div>
+</div>
+
+<script src="weatherData.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

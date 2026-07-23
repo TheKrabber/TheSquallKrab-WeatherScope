@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TheSquallKrab - WeatherScope</title>
+<meta name="description" content="WeatherScope by TheSquallKrab — a dashboard that detects your location (or a ZIP/postal code) and animates the current conditions in real time.">
+</head>
+<body>
+
+<div id="app">
+  <p class="eyebrow">TheSquallKrab · WeatherScope</p>
+
+  <div id="condition-banner" class="condition-banner" role="status" aria-live="polite"></div>
+
+  <div id="weather-stage">
+    <div id="weather-box">
+      <div id="effect-layer"></div>
+
+      <div id="stats-bar">
+        <div class="stat"><span class="stat-label">Rain</span><span class="stat-value" id="stat-rain">0.00 in/hr</span></div>
+        <div class="stat"><span class="stat-label">Temp</span><span class="stat-value" id="stat-temp">—</span></div>
+        <div class="stat"><span class="stat-label">Wind</span><span class="stat-value" id="stat-wind">—</span></div>
+        <div class="stat"><span class="stat-label">Pressure</span><span class="stat-value" id="stat-pressure">—</span></div>
+        <div class="stat"><span class="stat-label">Visibility</span><span class="stat-value" id="stat-visibility">—</span></div>
+        <div class="stat"><span class="stat-label">UV Index</span><span class="stat-value" id="stat-uv">—</span></div>
+        <div class="stat"><span class="stat-label">Air Quality</span><span class="stat-value" id="stat-aqi">—</span></div>
+      </div>
+    </div>
+
+    <div id="condition-footer" class="condition-banner" style="align-self: center;" role="status" aria-live="polite"></div>
+  </div>
+
+  <div id="location-controls">
+    <span id="location-name">Finding your location…</span>
+    <button type="button" class="btn" id="use-ip-btn">Use my location</button>
+    <input type="text" id="zip-input" placeholder="ZIP / postal code" inputmode="text" autocomplete="postal-code">
+    <select id="country-select" aria-label="Country for postal code lookup">
+      <option value="us" selected>United States</option>
+      <option value="ca">Canada</option>
+      <option value="gb">United Kingdom</option>
+      <option value="de">Germany</option>
+      <option value="fr">France</option>
+      <option value="es">Spain</option>
+      <option value="it">Italy</option>
+      <option value="au">Australia</option>
+      <option value="jp">Japan</option>
+      <option value="in">India</option>
+      <option value="br">Brazil</option>
+      <option value="mx">Mexico</option>
+    </select>
+    <button type="button" class="btn btn-primary" id="zip-submit">Go</button>
+    <span id="geocode-attribution">Postal lookup via OpenStreetMap Nominatim · IP location via BigDataCloud</span>
+  </div>
+</div>
+
+<button type="button" id="test-menu-toggle" class="btn" aria-haspopup="true" aria-expanded="false">
+  <span aria-hidden="true">⚙</span><span class="label">&nbsp;Test menu</span>
+</button>
+<div id="test-menu-backdrop"></div>
+<aside id="test-menu" aria-label="Weather condition test menu">
+  <header>
+    <h2>Test menu</h2>
+    <button type="button" id="test-menu-close" aria-label="Close test menu">✕</button>
+  </header>
+
+  <div class="menu-scroll">
+    <div class="menu-section">
+      <span class="field-label">Mode</span>
+      <div class="mode-toggle">
+        <button type="button" id="mode-live-btn" class="active">Live</button>
+        <button type="button" id="mode-test-btn">Test</button>
+      </div>
+    </div>
+
+    <div class="menu-section">
+      <span class="field-label">Override the stat strip (test mode)</span>
+      <div class="stat-overrides">
+        <label>Rain (in/hr)<input type="number" step="0.01" id="ov-rain"></label>
+        <label>Temp (°F)<input type="number" id="ov-temp"></label>
+        <label>Wind (mph)<input type="number" id="ov-wind"></label>
+        <label>Pressure (mb)<input type="number" id="ov-pressure"></label>
+        <label>Visibility (mi)<input type="number" step="0.1" id="ov-visibility"></label>
+        <label>UV Index<input type="number" id="ov-uv"></label>
+        <label>Air Quality (AQI)<input type="number" id="ov-aqi"></label>
+      </div>
+    </div>
+
+    <div class="menu-section">
+      <span class="field-label">All 90 conditions</span>
+      <div id="condition-groups"></div>
+    </div>
+  </div>
+</aside>
+
+<script src="../weatherData.js"></script>
+<script src="../app.js"></script>
+<script>
+// Runs synchronously right after app.js finishes defining everything (script
+// tags execute in document order), so no need to wait for DOMContentLoaded.
+window.__RESULTS__ = [];
+function check(name, actual, expected) {
+  const pass = actual === expected;
+  window.__RESULTS__.push({ name: name, pass: pass, actual: actual, expected: expected });
+}
+
+// --- resolveSky ---
+check('sky clear', resolveSky({ cloud_cover: 5 }), 'clear_skies');
+check('sky mostly_clear', resolveSky({ cloud_cover: 15 }), 'mostly_clear');
+check('sky partly_clear', resolveSky({ cloud_cover: 30 }), 'partly_clear');
+check('sky partly_cloudy', resolveSky({ cloud_cover: 50 }), 'partly_cloudy');
+check('sky mostly_cloudy', resolveSky({ cloud_cover: 70 }), 'mostly_cloudy');
+check('sky overcast', resolveSky({ cloud_cover: 90 }), 'overcast');
+
+// --- resolveFogFamily ---
+check('fog dense', resolveFogFamily({ weather_code: 45, visibility: 300, temperature_2m: 40 }, null), 'dense_fog');
+check('fog plain', resolveFogFamily({ weather_code: 45, visibility: 1500, temperature_2m: 40 }, null), 'fog');
+check('fog mist', resolveFogFamily({ weather_code: 45, visibility: 4000, temperature_2m: 40 }, null), 'mist');
+check('fog freezing', resolveFogFamily({ weather_code: 48, visibility: 1500, temperature_2m: 28 }, null), 'freezing_fog');
+check('haze from AQI', resolveFogFamily({ weather_code: 0, cloud_cover: 5, visibility: null },
+  { us_aqi: 70, us_aqi_pm2_5: 60, us_aqi_pm10: 40 }), 'haze');
+check('smoke from AQI', resolveFogFamily({ weather_code: 0 }, { us_aqi: 150, us_aqi_pm2_5: 140, us_aqi_pm10: 80 }), 'smoke');
+check('wildfire smoke from AQI', resolveFogFamily({ weather_code: 0 }, { us_aqi: 250, us_aqi_pm2_5: 230, us_aqi_pm10: 100 }), 'wildfire_smoke');
+
+// --- resolvePrecipFamily ---
+check('precip light_rain', resolvePrecipFamily({ weather_code: 61, apparent_temperature: 60 }), 'light_rain');
+check('precip heavy_rain', resolvePrecipFamily({ weather_code: 65, apparent_temperature: 60 }), 'heavy_rain');
+check('precip sleet (winter nudge)', resolvePrecipFamily({ weather_code: 71, apparent_temperature: 31 }), 'sleet');
+check('precip wintry_mix (winter nudge)', resolvePrecipFamily({ weather_code: 73, apparent_temperature: 35 }), 'wintry_mix');
+check('precip snow (cold, no nudge)', resolvePrecipFamily({ weather_code: 73, apparent_temperature: 20 }), 'snow');
+check('precip graupel', resolvePrecipFamily({ weather_code: 77, apparent_temperature: 30, precipitation: 0.1 }), 'graupel');
+check('precip heavy_graupel', resolvePrecipFamily({ weather_code: 77, apparent_temperature: 30, precipitation: 0.5 }), 'heavy_graupel');
+
+// --- resolveThunderFamily ---
+check('thunder isolated', resolveThunderFamily({ weather_code: 95, cape: 100 }), 'isolated_thunderstorms');
+check('thunder scattered', resolveThunderFamily({ weather_code: 95, cape: 1500 }), 'scattered_thunderstorms');
+check('thunder strong via CAPE', resolveThunderFamily({ weather_code: 95, cape: 3500 }), 'strong_thunderstorms');
+check('thunder strong via code96', resolveThunderFamily({ weather_code: 96, cape: 100 }), 'strong_thunderstorms');
+check('thunder severe via code99', resolveThunderFamily({ weather_code: 99, cape: 100 }), 'severe_thunderstorms');
+check('thunder n/a for clear code', resolveThunderFamily({ weather_code: 0, cape: 5000 }), null);
+
+// --- resolveWindFamily ---
+check('wind breezy', resolveWindFamily({ wind_speed_10m: 15, weather_code: 1 }), 'breezy');
+check('wind windy', resolveWindFamily({ wind_speed_10m: 22, weather_code: 1 }), 'windy');
+check('wind very_windy', resolveWindFamily({ wind_speed_10m: 29, weather_code: 1 }), 'very_windy');
+check('wind high_wind', resolveWindFamily({ wind_speed_10m: 40, weather_code: 1 }), 'high_wind');
+check('wind windstorm (calm code, huge gust)', resolveWindFamily({ wind_speed_10m: 20, wind_gusts_10m: 60, weather_code: 2 }), 'windstorm');
+check('wind damaging (storming, huge gust)', resolveWindFamily({ wind_speed_10m: 20, wind_gusts_10m: 60, weather_code: 95 }), 'damaging_winds');
+check('wind severe_thunderstorms (storming, extreme gust)', resolveWindFamily({ wind_speed_10m: 20, wind_gusts_10m: 80, weather_code: 95 }), 'severe_thunderstorms');
+
+// --- resolveTempExtremes ---
+check('temp extreme_cold', resolveTempExtremes({ apparent_temperature: -25, temperature_2m: -20 }), 'extreme_cold');
+check('temp polar_vortex', resolveTempExtremes({ apparent_temperature: -35, temperature_2m: -30 }), 'polar_vortex');
+check('temp extreme_heat', resolveTempExtremes({ apparent_temperature: 110, temperature_2m: 100 }), 'extreme_heat');
+check('temp hard_freeze', resolveTempExtremes({ temperature_2m: 27, apparent_temperature: 27 }), 'hard_freeze');
+check('temp frost', resolveTempExtremes({ temperature_2m: 31, apparent_temperature: 31, cloud_cover: 20, wind_speed_10m: 3 }), 'frost');
+check('temp n/a mild', resolveTempExtremes({ temperature_2m: 70, apparent_temperature: 70, cloud_cover: 20, wind_speed_10m: 3 }), null);
+
+// --- resolveDustFamily ---
+check('dust blowing_dust', resolveDustFamily({ dust: 150 }, { wind_speed_10m: 25 }), 'blowing_dust');
+check('dust dust_storm', resolveDustFamily({ dust: 600 }, { wind_speed_10m: 35 }), 'dust_storm');
+
+// --- ground blizzard / blizzard heuristics ---
+check('ground blizzard', resolveGroundBlizzard({ weather_code: 1, snow_depth: 0.1, wind_speed_10m: 30, temperature_2m: 15 }), 'ground_blizzard');
+check('blizzard heuristic', resolveBlizzardHeuristic({ weather_code: 73, wind_speed_10m: 40, visibility: 200, temperature_2m: 5 }), 'blizzard');
+check('extreme blizzard heuristic', resolveBlizzardHeuristic({ weather_code: 75, wind_speed_10m: 55, visibility: 100, temperature_2m: 2 }), 'extreme_blizzard');
+
+// --- flash flood / bomb cyclone / multi-day ---
+check('flash flood heuristic', resolveFlashFloodHeuristic({ precipitation: 2.0 }), 'flash_flooding');
+check('flash flood n/a', resolveFlashFloodHeuristic({ precipitation: 0.5 }), null);
+check('bomb cyclone', resolveBombCyclone(25), 'bomb_cyclone');
+check('bomb cyclone n/a', resolveBombCyclone(10), null);
+check('heat wave', resolveMultiDay(3, 0), 'heat_wave');
+check('cold wave', resolveMultiDay(0, 4), 'cold_wave');
+
+// --- mapNwsAlertToConditionId ---
+check('nws tornado emergency', mapNwsAlertToConditionId({ properties: { event: 'Tornado Warning', description: 'a TORNADO EMERGENCY for the city', headline: '' } }), 'tornado_emergency');
+check('nws violent tornado (tag)', mapNwsAlertToConditionId({ properties: { event: 'Tornado Warning', description: '', headline: '', parameters: { tornadoDamageThreat: ['CATASTROPHIC'] } } }), 'violent_tornado');
+check('nws weak tornado (base)', mapNwsAlertToConditionId({ properties: { event: 'Tornado Warning', description: '', headline: '' } }), 'weak_tornado');
+check('nws large hail (golf ball)', mapNwsAlertToConditionId({ properties: { event: 'Severe Thunderstorm Warning', description: 'golf ball size hail expected', headline: '' } }), 'large_hail');
+check('nws severe thunderstorm (destructive tag)', mapNwsAlertToConditionId({ properties: { event: 'Severe Thunderstorm Warning', description: '', parameters: { thunderstormDamageThreat: ['DESTRUCTIVE'] } } }), 'severe_thunderstorms');
+check('nws hurricane cat4', mapNwsAlertToConditionId({ properties: { event: 'Hurricane Warning', description: 'a Category 4 hurricane will move onshore' } }), 'hurricane_cat4');
+check('nws historic flooding', mapNwsAlertToConditionId({ properties: { event: 'Flood Warning', description: 'historic flooding is expected along the river' } }), 'historic_flooding');
+check('nws high wind', mapNwsAlertToConditionId({ properties: { event: 'High Wind Warning', description: '' } }), 'high_wind');
+check('nws no match', mapNwsAlertToConditionId({ properties: { event: 'Air Quality Alert', description: '' } }), null);
+
+// --- resolveCurrentConditionId (end to end priority waterfall) ---
+check('waterfall: windy beats clear sky', resolveCurrentConditionId({
+  current: { cloud_cover: 5, wind_speed_10m: 22, weather_code: 1 }
+}), 'windy');
+check('waterfall: NWS hurricane beats clear sky', resolveCurrentConditionId({
+  current: { cloud_cover: 5, weather_code: 0 }, nwsConditionIds: ['hurricane_cat3']
+}), 'hurricane_cat3');
+check('waterfall: empty bundle falls back to clear_skies', resolveCurrentConditionId({}), 'clear_skies');
+
+// --- misc utilities ---
+check('hexToRgbString', hexToRgbString('#00C853'), '0,200,83');
+check('tierRank ordering', tierRank('maroon') > tierRank('green'), true);
+
+// --- data integrity spot checks reachable from app.js's perspective ---
+check('CONDITIONS_BY_ID has 90 entries', Object.keys(CONDITIONS_BY_ID).length, 90);
+check('every condition has a renderer', WEATHER_CONDITIONS.every(function (c) { return !!FX_RENDERERS[c.effect]; }), true);
+
+window.__DONE__ = true;
+</script>
+</body>
+</html>
