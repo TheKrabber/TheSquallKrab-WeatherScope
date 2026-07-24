@@ -74,8 +74,7 @@ outranks a heuristic guess.
   live NWS alert, so outside the US they will never appear on their own —
   only from the test menu. Other countries have their own agencies (Environment
   Canada, the UK Met Office, JMA, BOM, etc.) that this site doesn't
-  integrate with; wiring one of those in for your region would be a
-  reasonable next step if you want to extend it.
+  integrate with.
 
 ### 9 conditions that never trigger automatically, anywhere
 
